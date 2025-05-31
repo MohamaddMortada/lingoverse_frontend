@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lingoverse_frontend/Services/auth_service.dart';
+import 'package:lingoverse_frontend/View/Pages/register_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lingoverse_frontend/Services/api_client_service.dart';
 import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
@@ -14,8 +16,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ApiClientService _api =
-      ApiClientService(baseUrl: 'http://127.0.0.1:8000/api');
+  final ApiClientService _api = ApiClientService(baseUrl: 'http://127.0.0.1:8000/api');
 
   bool _isEditing = false;
   bool _loading = true;
@@ -29,9 +30,125 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final passwordController = TextEditingController();
   final ageController = TextEditingController();
 
+  final AuthService _authService = AuthService();
+
+
   String _selectedLanguage = "English";
+  String _nativeLanguage = "English";
   String _selectedLevel = "Beginner";
-  final List<String> _languages = ["English", "Arabic", "French", "Spanish"];
+final List<String> _languages = [
+  'Afrikaans',
+  'Albanian',
+  'Amharic',
+  'Arabic',
+  'Armenian',
+  'Assamese',
+  'Azerbaijani',
+  'Basque',
+  'Belarusian',
+  'Bengali',
+  'Bosnian',
+  'Bulgarian',
+  'Burmese',
+  'Catalan',
+  'Cebuano',
+  'Chinese (Simplified)',
+  'Chinese (Traditional)',
+  'Corsican',
+  'Croatian',
+  'Czech',
+  'Danish',
+  'Dutch',
+  'English',
+  'Esperanto',
+  'Estonian',
+  'Filipino',
+  'Finnish',
+  'French',
+  'Frisian',
+  'Galician',
+  'Georgian',
+  'German',
+  'Greek',
+  'Gujarati',
+  'Haitian Creole',
+  'Hausa',
+  'Hawaiian',
+  'Hebrew',
+  'Hindi',
+  'Hmong',
+  'Hungarian',
+  'Icelandic',
+  'Igbo',
+  'Indonesian',
+  'Irish',
+  'Italian',
+  'Japanese',
+  'Javanese',
+  'Kannada',
+  'Kazakh',
+  'Khmer',
+  'Kinyarwanda',
+  'Korean',
+  'Kurdish (Kurmanji)',
+  'Kyrgyz',
+  'Lao',
+  'Latin',
+  'Latvian',
+  'Lithuanian',
+  'Luxembourgish',
+  'Macedonian',
+  'Malagasy',
+  'Malay',
+  'Malayalam',
+  'Maltese',
+  'Maori',
+  'Marathi',
+  'Mongolian',
+  'Nepali',
+  'Norwegian',
+  'Nyanja (Chichewa)',
+  'Odia (Oriya)',
+  'Pashto',
+  'Persian (Farsi)',
+  'Polish',
+  'Portuguese',
+  'Punjabi',
+  'Romanian',
+  'Russian',
+  'Samoan',
+  'Scots Gaelic',
+  'Serbian',
+  'Sesotho',
+  'Shona',
+  'Sindhi',
+  'Sinhala',
+  'Slovak',
+  'Slovenian',
+  'Somali',
+  'Spanish',
+  'Sundanese',
+  'Swahili',
+  'Swedish',
+  'Tajik',
+  'Tamil',
+  'Tatar',
+  'Telugu',
+  'Thai',
+  'Tigrinya',
+  'Turkish',
+  'Turkmen',
+  'Ukrainian',
+  'Urdu',
+  'Uyghur',
+  'Uzbek',
+  'Vietnamese',
+  'Welsh',
+  'Xhosa',
+  'Yiddish',
+  'Yoruba',
+  'Zulu',
+];
   final List<String> _levels = ["Beginner", "Intermediate", "Fluent"];
 
   int _trophies = 0;
@@ -56,6 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     userId = prefs.getInt('user_id');
     _selectedLanguage = prefs.getString('language') ?? 'English';
     _selectedLevel = prefs.getString('level') ?? 'Beginner';
+    _nativeLanguage = prefs.getString('native') ?? 'English';
 
     if (userId == null) return;
 
@@ -137,8 +255,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _savePreferences() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', _selectedLanguage);
+    await prefs.setString('native', _nativeLanguage);
     await prefs.setString('level', _selectedLevel);
   }
+
+Widget _buildDatePickerWithIcon(String label) {
+  return TextField(
+    controller: ageController,
+    readOnly: true,
+    decoration: InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey[100],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      suffixIcon: IconButton(
+        icon: const Icon(Icons.calendar_today),
+        onPressed: () async {
+          final DateTime? picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime(2000),
+            firstDate: DateTime(1900),
+            lastDate: DateTime.now(),
+          );
+          if (picked != null) {
+            final age = DateTime.now().year - picked.year;
+            setState(() {
+              ageController.text = age.toString();
+            });
+          }
+        },
+      ),
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -148,14 +298,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
       bottomNavigationBar: const BottomNavbar(forcedIndex: 2),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor:Color(0xFF00111C),
+        backgroundColor: const Color(0xFF00111C),
         title: const Text("Profile", style: TextStyle(color: Colors.white)),
         actions: [
-          IconButton(
-            icon: Icon(_isEditing ? Icons.close : Icons.edit, color: Colors.white),
-            onPressed: () => setState(() => _isEditing = !_isEditing),
-          )
-        ],
+  IconButton(
+    icon: const Icon(Icons.logout, color: Color.fromARGB(255, 255, 1, 1)),
+    tooltip: "Logout",
+    onPressed: () async {
+      final shouldLogout = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF00131F),
+          title: const Text("Confirm Logout", style: TextStyle(color: Colors.white)),
+          content: const Text("Are you sure you want to log out?", style: TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text("Logout", style: TextStyle(color: Colors.redAccent)),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldLogout == true) {
+        await _authService.logout();
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => RegisterScreen()),
+          (route) => false,
+        );
+      }
+    },
+  ),
+  IconButton(
+    icon: Icon(_isEditing ? Icons.close : Icons.edit, color: Colors.white),
+    tooltip: "Edit",
+    onPressed: () => setState(() => _isEditing = !_isEditing),
+  ),
+],
+
+
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -169,8 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       radius: 50,
                       backgroundImage: imageBase64 != null
                           ? MemoryImage(base64Decode(imageBase64!))
-                          : const NetworkImage(
-                              'https://i.pravatar.cc/150?img=8') as ImageProvider,
+                          : const NetworkImage('https://i.pravatar.cc/150?img=8') as ImageProvider,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -182,16 +368,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? _buildField("Email", emailController)
                       : _buildDisplayRow("Email", emailController.text),
                   const SizedBox(height: 10),
-                  _isEditing
-                      ? _buildField("Age", ageController, keyboardType: TextInputType.number)
-                      : _buildDisplayRow("Age", ageController.text),
+                 _isEditing
+  ? _buildDatePickerWithIcon("Date of Birth")
+  : _buildDisplayRow("Age", ageController.text),
+
+
                   const SizedBox(height: 10),
                   _isEditing
                       ? _buildField("Password", passwordController, obscureText: true)
                       : _buildDisplayRow("Password", "********"),
                   const SizedBox(height: 30),
-                  _dropdownRow("Language", _languages, _selectedLanguage, (val) {
+                  _dropdownRow("Learning Language", _languages, _selectedLanguage, (val) {
                     setState(() => _selectedLanguage = val);
+                    _savePreferences();
+                  }),
+                  _dropdownRow("Native Language", _languages, _nativeLanguage, (val) {
+                    setState(() => _nativeLanguage = val);
                     _savePreferences();
                   }),
                   const SizedBox(height: 20),

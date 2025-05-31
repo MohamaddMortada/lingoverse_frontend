@@ -28,11 +28,63 @@ class _ListenScreenState extends State<ListenScreen> {
   bool _isPlaying = false;
 
   final Map<String, String> _languageLocales = {
-  'English': 'en-US',
+  'Afrikaans': 'af-ZA',
   'Arabic': 'ar-SA',
+  'Bengali': 'bn-IN',
+  'Bulgarian': 'bg-BG',
+  'Catalan': 'ca-ES',
+  'Chinese (Simplified)': 'zh-CN',
+  'Chinese (Traditional)': 'zh-TW',
+  'Croatian': 'hr-HR',
+  'Czech': 'cs-CZ',
+  'Danish': 'da-DK',
+  'Dutch': 'nl-NL',
+  'English': 'en-US',
+  'Estonian': 'et-EE',
+  'Filipino': 'fil-PH',
+  'Finnish': 'fi-FI',
   'French': 'fr-FR',
+  'German': 'de-DE',
+  'Greek': 'el-GR',
+  'Gujarati': 'gu-IN',
+  'Hebrew': 'he-IL',
+  'Hindi': 'hi-IN',
+  'Hungarian': 'hu-HU',
+  'Indonesian': 'id-ID',
+  'Italian': 'it-IT',
+  'Japanese': 'ja-JP',
+  'Javanese': 'jv-ID',
+  'Kannada': 'kn-IN',
+  'Korean': 'ko-KR',
+  'Latvian': 'lv-LV',
+  'Lithuanian': 'lt-LT',
+  'Malay': 'ms-MY',
+  'Malayalam': 'ml-IN',
+  'Marathi': 'mr-IN',
+  'Nepali': 'ne-NP',
+  'Norwegian': 'no-NO',
+  'Polish': 'pl-PL',
+  'Portuguese': 'pt-PT',
+  'Punjabi': 'pa-IN',
+  'Romanian': 'ro-RO',
+  'Russian': 'ru-RU',
+  'Serbian': 'sr-RS',
+  'Sinhala': 'si-LK',
+  'Slovak': 'sk-SK',
+  'Slovenian': 'sl-SI',
   'Spanish': 'es-ES',
+  'Swahili': 'sw-KE',
+  'Swedish': 'sv-SE',
+  'Tamil': 'ta-IN',
+  'Telugu': 'te-IN',
+  'Thai': 'th-TH',
+  'Turkish': 'tr-TR',
+  'Ukrainian': 'uk-UA',
+  'Urdu': 'ur-IN',
+  'Vietnamese': 'vi-VN',
+  'Zulu': 'zu-ZA',
 };
+
 
   @override
 void initState() {
@@ -70,28 +122,17 @@ Future<void> _fetchParagraph() async {
 }
 
   Future<void> _setupTts() async {
-   final locale = _languageLocales[_language] ?? 'en-US';
+  final locale = _languageLocales[_language] ?? 'en-US';
+  print("Using TTS locale: $locale");
+
   await _tts.setLanguage(locale);
-    await _tts.setSpeechRate(0.5);
+  await _tts.setSpeechRate(0.5);
 
-    _tts.setStartHandler(() {
-      setState(() {
-        _isPlaying = true;
-      });
-    });
+  _tts.setStartHandler(() => setState(() => _isPlaying = true));
+  _tts.setCompletionHandler(() => setState(() => _isPlaying = false));
+  _tts.setPauseHandler(() => setState(() => _isPlaying = false));
+}
 
-    _tts.setCompletionHandler(() {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
-
-    _tts.setPauseHandler(() {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
-  }
 
   Future<void> _speak() async {
     await _tts.speak(_paragraph);
@@ -187,7 +228,7 @@ Future<void> _fetchParagraph() async {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       CustomedText(
-        text: 'Fluency Score:',
+        text: 'Score:',
         size: 16,
         weight: FontWeight.w500,
       ),

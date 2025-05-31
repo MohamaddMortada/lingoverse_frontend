@@ -19,6 +19,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController phoneController = TextEditingController();
   final AuthService authService = AuthService();
 
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+
+
   void register() async {
   if (passwordController.text != confirmController.text) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -73,8 +77,65 @@ Navigator.pushReplacement(
             CustomedTextfield(label: 'Name', controller: nameController), SizedBox(height: 10),
             CustomedTextfield(label: 'Email', controller: emailController), SizedBox(height: 10),
             CustomedTextfield(label: 'Phone Number', controller: phoneController), SizedBox(height: 10),
-            CustomedTextfield(label: 'Password', controller: passwordController), SizedBox(height: 10),
-            CustomedTextfield(label: 'Confirm Password', controller: confirmController), SizedBox(height: 10),
+Container(
+  padding: const EdgeInsets.symmetric(horizontal: 10),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(color: Theme.of(context).primaryColor),
+  ),
+  child: TextField(
+    controller: passwordController,
+    obscureText: _obscurePassword,
+    style: const TextStyle(color: Colors.white),
+    decoration: InputDecoration(
+      labelText: 'Password',
+      labelStyle: const TextStyle(color: Color.fromARGB(255, 188, 188, 188)),
+      border: InputBorder.none,
+      suffixIcon: IconButton(
+        icon: Icon(
+          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+          color: Theme.of(context).primaryColor,
+        ),
+        onPressed: () {
+          setState(() {
+            _obscurePassword = !_obscurePassword;
+          });
+        },
+      ),
+    ),
+  ),
+),
+const SizedBox(height: 10),
+
+Container(
+  padding: const EdgeInsets.symmetric(horizontal: 10),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(color: Theme.of(context).primaryColor),
+  ),
+  child: TextField(
+    controller: confirmController,
+    obscureText: _obscureConfirm,
+    style: const TextStyle(color: Colors.white),
+    decoration: InputDecoration(
+      labelText: 'Confirm Password',
+      labelStyle: const TextStyle(color: Color.fromARGB(255, 188, 188, 188)),
+      border: InputBorder.none,
+      suffixIcon: IconButton(
+        icon: Icon(
+          _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+          color: Theme.of(context).primaryColor,
+        ),
+        onPressed: () {
+          setState(() {
+            _obscureConfirm = !_obscureConfirm;
+          });
+        },
+      ),
+    ),
+  ),
+),
+
             SizedBox(height: 10),
 CustomedButton(text: 'Register', ontap: register),
             

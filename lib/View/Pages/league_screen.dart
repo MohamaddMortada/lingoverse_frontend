@@ -67,10 +67,12 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
   Future<void> _generateChallenges() async {
     final prefs = await SharedPreferences.getInstance();
     final level = prefs.getString('league_level') ?? 'Beginner';
-    final language = prefs.getString('selected_language') ?? 'english';
+    final language = prefs.getString('language') ?? 'english';
+    final native = prefs.getString('native') ?? 'english';
 
     final response = await _api.post('/challenges/generate-ai', {
       "language": language,
+      "native" : native,
       "level": level,
     });
 
@@ -90,6 +92,9 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
     bool? isCorrect;
     String? feedback;
     Map<String, dynamic>? finalResult;
+
+    final prefs = await SharedPreferences.getInstance();
+    final native = prefs.getString('native') ?? 'english';
 
     await showDialog(
       context: context,
@@ -130,11 +135,11 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                       ],
                     ),
                   ),
-                  if (feedback != null) ...[
-                    const SizedBox(height: 6),
-                    Text("Feedback: $feedback",
-                        style: const TextStyle(color: Colors.orange)),
-                  ]
+                  // if (feedback != null) ...[
+                  //   const SizedBox(height: 6),
+                  //   Text("Feedback: $feedback",
+                  //       style: const TextStyle(color: Colors.orange)),
+                  // ]
                 ]
               ],
             ),
@@ -147,6 +152,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
 
                     final body = {
                       "user_id": _userId,
+                      "language":native,
                       "challenge_id": _challenges[index].id,
                       "user_answer": answer,
                     };

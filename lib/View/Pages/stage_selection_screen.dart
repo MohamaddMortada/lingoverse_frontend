@@ -12,6 +12,8 @@ class StageSelectionScreen extends StatefulWidget {
 
 class _StageSelectionScreenState extends State<StageSelectionScreen> {
   int _unlockedStage = 1;
+  String _language = 'english';
+  String native = 'english';
 
   final List<String> _stages = [
     'Beginner',
@@ -36,6 +38,8 @@ class _StageSelectionScreenState extends State<StageSelectionScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _unlockedStage = prefs.getInt('unlocked_stage') ?? 1;
+      _language = prefs.getString('language') ?? 'English';
+      native = prefs.getString('native') ?? 'English';
     });
   }
 

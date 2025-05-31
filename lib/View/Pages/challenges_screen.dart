@@ -40,10 +40,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
   Future<void> _generateChallenges() async {
     final prefs = await SharedPreferences.getInstance();
 final language = prefs.getString('language') ?? 'English';
+final native = prefs.getString('native') ?? 'English';
 final level = prefs.getString('level') ?? 'Beginner';
 
 final response = await _api.post('/challenges/generate-ai', {
   "language": language,
+  "native": native,
   "level": level,
 });
     if (response.success) {
@@ -58,6 +60,9 @@ final response = await _api.post('/challenges/generate-ai', {
   }
 
   Future<void> _submitAnswer(int index) async {
+        final prefs = await SharedPreferences.getInstance();
+    final native = prefs.getString('native') ?? 'English';
+
     final userAnswer = _controllers[index].text.trim();
     if (userAnswer.isEmpty || _userId == null) return;
 
@@ -65,6 +70,7 @@ final response = await _api.post('/challenges/generate-ai', {
       "user_id": _userId,
       "challenge_id": _challenges[index].id,
       "user_answer": userAnswer,
+      "language": native,
     };
 
     final response = await _api.post('/challenges/answer', body);
