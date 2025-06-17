@@ -3,6 +3,7 @@ import 'package:lingoverse_frontend/Model/challenge.dart';
 import 'package:lingoverse_frontend/Services/api_client_service.dart';
 import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ChallengesPage extends StatefulWidget {
   const ChallengesPage({super.key});
@@ -35,19 +36,19 @@ class _ChallengesPageState extends State<ChallengesPage> {
       _generateChallenges();
     }
   }
-  
 
   Future<void> _generateChallenges() async {
     final prefs = await SharedPreferences.getInstance();
-final language = prefs.getString('language') ?? 'English';
-final native = prefs.getString('native') ?? 'English';
-final level = prefs.getString('level') ?? 'Beginner';
+    final language = prefs.getString('language') ?? 'English';
+    final native = prefs.getString('native') ?? 'English';
+    final level = prefs.getString('level') ?? 'Beginner';
 
-final response = await _api.post('/challenges/generate-ai', {
-  "language": language,
-  "native": native,
-  "level": level,
-});
+    final response = await _api.post('/challenges/generate-ai', {
+      "language": language,
+      "native": native,
+      "level": level,
+    });
+
     if (response.success) {
       final List challenges = response.data['challenges'];
       setState(() {
@@ -60,7 +61,7 @@ final response = await _api.post('/challenges/generate-ai', {
   }
 
   Future<void> _submitAnswer(int index) async {
-        final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     final native = prefs.getString('native') ?? 'English';
 
     final userAnswer = _controllers[index].text.trim();
@@ -108,9 +109,9 @@ final response = await _api.post('/challenges/generate-ai', {
       bottomNavigationBar: const BottomNavbar(forcedIndex: 1),
       backgroundColor: const Color(0xFF00131F),
       appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white), 
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color(0xFF00111C),
-        title: Text("Challenges", style: TextStyle(color: Colors.white),),
+        title: Text("daily_challenges".tr(), style: const TextStyle(color: Colors.white)),
       ),
       body: _challenges.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -162,7 +163,7 @@ final response = await _api.post('/challenges/generate-ai', {
                                   maxLines: 3,
                                   style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
-                                    hintText: "Your answer",
+                                    hintText: "your_answer".tr(),
                                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
                                     filled: true,
                                     fillColor: Colors.white.withOpacity(0.05),
@@ -183,11 +184,11 @@ final response = await _api.post('/challenges/generate-ai', {
                                     ElevatedButton(
                                       onPressed: () => _submitAnswer(index),
                                       style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                                      child: const Text("Submit"),
+                                      child: Text("submit".tr()),
                                     ),
                                     if (score != null)
                                       Text(
-                                        "Score: $score",
+                                        "${"best_score".tr()}: $score",
                                         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                                       ),
                                   ],
@@ -196,7 +197,7 @@ final response = await _api.post('/challenges/generate-ai', {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 6),
                                     child: Text(
-                                      "Feedback: $feedback",
+                                      "${"feedback".tr()}: $feedback",
                                       style: const TextStyle(color: Colors.orangeAccent),
                                     ),
                                   ),
@@ -214,13 +215,13 @@ final response = await _api.post('/challenges/generate-ai', {
                       backgroundColor: primaryColor,
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                     ),
-                    child: const Text("Submit All", style: TextStyle(fontSize: 16)),
+                    child: Text("submit_all".tr(), style: const TextStyle(fontSize: 16)),
                   ),
                   if (_allSubmitted)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
                       child: Text(
-                        "Total Score: $_totalScore",
+                        "${"total_score".tr()}: $_totalScore",
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),

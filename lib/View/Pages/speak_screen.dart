@@ -5,6 +5,7 @@ import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:lingoverse_frontend/View/Widgets/customed_text.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SpeakScreen extends StatefulWidget {
   const SpeakScreen({super.key});
@@ -23,55 +24,12 @@ class _SpeakScreenState extends State<SpeakScreen> {
   String _spokenText = '';
   String _language = 'English';
   int? _userId;
+
   final Map<String, String> _languageLocales = {
-  'Afrikaans': 'af-ZA',
-  'Arabic': 'ar-SA',
-  'Basque': 'eu-ES',
-  'Bulgarian': 'bg-BG',
-  'Catalan': 'ca-ES',
-  'Chinese (Simplified)': 'zh-CN',
-  'Chinese (Traditional)': 'zh-TW',
-  'Croatian': 'hr-HR',
-  'Czech': 'cs-CZ',
-  'Danish': 'da-DK',
-  'Dutch': 'nl-NL',
-  'English': 'en-US',
-  'Finnish': 'fi-FI',
-  'French': 'fr-FR',
-  'Galician': 'gl-ES',
-  'German': 'de-DE',
-  'Greek': 'el-GR',
-  'Hebrew': 'he-IL',
-  'Hindi': 'hi-IN',
-  'Hungarian': 'hu-HU',
-  'Icelandic': 'is-IS',
-  'Indonesian': 'id-ID',
-  'Italian': 'it-IT',
-  'Japanese': 'ja-JP',
-  'Korean': 'ko-KR',
-  'Latvian': 'lv-LV',
-  'Lithuanian': 'lt-LT',
-  'Malay': 'ms-MY',
-  'Norwegian': 'no-NO',
-  'Polish': 'pl-PL',
-  'Portuguese': 'pt-PT',
-  'Romanian': 'ro-RO',
-  'Russian': 'ru-RU',
-  'Serbian': 'sr-RS',
-  'Slovak': 'sk-SK',
-  'Slovenian': 'sl-SI',
-  'Spanish': 'es-ES',
-  'Swahili': 'sw-KE',
-  'Swedish': 'sv-SE',
-  'Tamil': 'ta-IN',
-  'Thai': 'th-TH',
-  'Turkish': 'tr-TR',
-  'Ukrainian': 'uk-UA',
-  'Vietnamese': 'vi-VN',
-  'Zulu': 'zu-ZA',
-};
-
-
+    'Arabic': 'ar-SA',
+    'English': 'en-US',
+    'French': 'fr-FR',
+  };
 
   final ScrollController _scrollController = ScrollController();
 
@@ -83,12 +41,12 @@ class _SpeakScreenState extends State<SpeakScreen> {
   }
 
   Future<void> _loadLanguage() async {
-  final prefs = await SharedPreferences.getInstance();
-  setState(() {
-     _userId = prefs.getInt('user_id');
-    _language = prefs.getString('language') ?? 'English';
-  });
-}
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userId = prefs.getInt('user_id');
+      _language = prefs.getString('language') ?? 'English';
+    });
+  }
 
   Future<void> _initSpeech() async {
     if (kIsWeb) {
@@ -100,57 +58,55 @@ class _SpeakScreenState extends State<SpeakScreen> {
             setState(() => _isListening = false);
           }
         },
-        onError: (error) => print("Error: $error"),
+        onError: (error) => print("Speech Error: $error"),
       );
       setState(() => _speechAvailable = available);
     }
   }
 
   void _startListening() {
-  if (!_speechAvailable) return;
+    if (!_speechAvailable) return;
 
-  setState(() {
-    _isListening = true;
-    _spokenText = '';
-  });
+    setState(() {
+      _isListening = true;
+      _spokenText = '';
+    });
 
-  final selectedLocale = _languageLocales[_language] ?? 'en-US';
+    final selectedLocale = _languageLocales[_language] ?? 'en-US';
 
-  _speech.listen(
-    onResult: (result) {
-      setState(() {
-        _spokenText = result.recognizedWords;
-      });
-    },
-    localeId: selectedLocale, 
-  );
-}
-
+    _speech.listen(
+      onResult: (result) {
+        setState(() {
+          _spokenText = result.recognizedWords;
+        });
+      },
+      localeId: selectedLocale,
+    );
+  }
 
   Future<void> _sendToAI(String text) async {
-  if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty) return;
 
-  setState(() {
-    _messages.add(_Message(text: text, isUser: true));
-  });
-  _scrollToBottom();
+    setState(() {
+      _messages.add(_Message(text: text, isUser: true));
+    });
+    _scrollToBottom();
 
-  final res = await _api.post('/speech/chat', {
-    'message': text,
-    'user_id': _userId, 
-    'language': _language,
-  });
+    final res = await _api.post('/speech/chat', {
+      'message': text,
+      'user_id': _userId,
+      'language': _language,
+    });
 
-  final aiReply = res.success && res.data['reply'] != null
-      ? res.data['reply']
-      : "Sorry, I couldn't understand that.";
+    final aiReply = res.success && res.data['reply'] != null
+        ? res.data['reply']
+        : "ai_fallback".tr();
 
-  setState(() {
-    _messages.add(_Message(text: aiReply, isUser: false));
-  });
-  _scrollToBottom();
-}
-
+    setState(() {
+      _messages.add(_Message(text: aiReply, isUser: false));
+    });
+    _scrollToBottom();
+  }
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -168,20 +124,17 @@ class _SpeakScreenState extends State<SpeakScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white), 
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color(0xFF00111C),
-        title: Text("AI ChatBot", style: TextStyle(color: Colors.white),),
+        title: Text("voice_chatbot".tr(), style: const TextStyle(color: Colors.white)),
       ),
-        bottomNavigationBar: const BottomNavbar(forcedIndex: 1),
-
+      bottomNavigationBar: const BottomNavbar(forcedIndex: 1),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
-              //CustomedText(text: 'AI ChatBot', size: 24, weight: FontWeight.bold),
               const SizedBox(height: 20),
-
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
@@ -217,9 +170,7 @@ class _SpeakScreenState extends State<SpeakScreen> {
                   },
                 ),
               ),
-
               const SizedBox(height: 20),
-
               IconButton(
                 icon: Icon(
                   _isListening ? Icons.stop_circle : Icons.mic,

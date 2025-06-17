@@ -5,7 +5,7 @@ import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:lingoverse_frontend/View/Widgets/customed_text.dart';
-import 'dart:convert';
+import 'package:easy_localization/easy_localization.dart';
 
 class FluencyScreen extends StatefulWidget {
   const FluencyScreen({super.key});
@@ -16,9 +16,7 @@ class FluencyScreen extends StatefulWidget {
 
 class _FluencyScreenState extends State<FluencyScreen> {
   final stt.SpeechToText _speech = stt.SpeechToText();
-  final ApiClientService _api = ApiClientService(
-    baseUrl: 'http://127.0.0.1:8000/api',
-  );
+  final ApiClientService _api = ApiClientService(baseUrl: 'http://127.0.0.1:8000/api');
 
   bool _isListening = false;
   bool _speechAvailable = false;
@@ -56,10 +54,6 @@ class _FluencyScreenState extends State<FluencyScreen> {
         onStatus: (status) {
           if (!mounted) return;
           setState(() => _status = status);
-          onStatus: (status) {
-  if (!mounted) return;
-  setState(() => _status = status);
-};
         },
         onError: (error) => print("Speech error: $error"),
       );
@@ -69,15 +63,11 @@ class _FluencyScreenState extends State<FluencyScreen> {
   }
 
   Future<void> _fetchParagraph() async {
-    final res = await _api.post('/speech/paragraph', {
-      'language': _language,
-    });
+    final res = await _api.post('/speech/paragraph', {'language': _language});
     if (!mounted) return;
     if (res.success && res.data['paragraph'] != null) {
       setState(() {
         _paragraph = res.data['paragraph'];
-        print("Sending language: $_language");
-        print(_paragraph);
       });
     }
   }
@@ -85,7 +75,7 @@ class _FluencyScreenState extends State<FluencyScreen> {
   void _startListening() {
     if (!_speechAvailable) return;
 
-    final localeId = _getLocaleForLanguage(_language);
+    final localeId = _languageLocales[_language] ?? 'en-US';
 
     setState(() {
       _isListening = true;
@@ -99,96 +89,46 @@ class _FluencyScreenState extends State<FluencyScreen> {
         if (!mounted) return;
         setState(() {
           _spokenText = result.recognizedWords;
-          print("Recognized: $_spokenText");
         });
       },
       localeId: localeId,
     );
   }
 
-final Map<String, String> _languageLocales = {
-  'Afrikaans': 'af-ZA',
-  'Arabic': 'ar-SA',
-  'Basque': 'eu-ES',
-  'Bulgarian': 'bg-BG',
-  'Catalan': 'ca-ES',
-  'Chinese (Simplified)': 'zh-CN',
-  'Chinese (Traditional)': 'zh-TW',
-  'Croatian': 'hr-HR',
-  'Czech': 'cs-CZ',
-  'Danish': 'da-DK',
-  'Dutch': 'nl-NL',
-  'English': 'en-US',
-  'Finnish': 'fi-FI',
-  'French': 'fr-FR',
-  'Galician': 'gl-ES',
-  'German': 'de-DE',
-  'Greek': 'el-GR',
-  'Hebrew': 'he-IL',
-  'Hindi': 'hi-IN',
-  'Hungarian': 'hu-HU',
-  'Icelandic': 'is-IS',
-  'Indonesian': 'id-ID',
-  'Italian': 'it-IT',
-  'Japanese': 'ja-JP',
-  'Korean': 'ko-KR',
-  'Latvian': 'lv-LV',
-  'Lithuanian': 'lt-LT',
-  'Malay': 'ms-MY',
-  'Norwegian': 'no-NO',
-  'Polish': 'pl-PL',
-  'Portuguese': 'pt-PT',
-  'Romanian': 'ro-RO',
-  'Russian': 'ru-RU',
-  'Serbian': 'sr-RS',
-  'Slovak': 'sk-SK',
-  'Slovenian': 'sl-SI',
-  'Spanish': 'es-ES',
-  'Swahili': 'sw-KE',
-  'Swedish': 'sv-SE',
-  'Tamil': 'ta-IN',
-  'Thai': 'th-TH',
-  'Turkish': 'tr-TR',
-  'Ukrainian': 'uk-UA',
-  'Vietnamese': 'vi-VN',
-  'Zulu': 'zu-ZA',
-};
-
-String _getLocaleForLanguage(String language) {
-  return _languageLocales[language] ?? 'en-US';
-}
-
-
   Future<void> _analyzeFluency() async {
-  if (_paragraph.isEmpty || _spokenText.isEmpty) return;
+    if (_paragraph.isEmpty || _spokenText.isEmpty) return;
 
-  final prefs = await SharedPreferences.getInstance();
-  final userId = prefs.getInt('user_id') ?? 6;
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id') ?? 6;
 
-  final body = {
-    'user_id': userId,
-    'expected_text': _paragraph,
-    'spoken_text': _spokenText,
-  };
+    final body = {
+      'user_id': userId,
+      'expected_text': _paragraph,
+      'spoken_text': _spokenText,
+    };
 
-  final res = await _api.post('/speech/analyze-fluency', body);
-  print("Response from /analyze-fluency: ${res.data}");
+    final res = await _api.post('/speech/analyze-fluency', body);
 
-  if (!mounted) return;
-  if (res.success && res.data != null) {
-    final rawFeedback = res.data['feedback'];
-    final List<String> missed = rawFeedback['missed_words'] != null
-        ? List<String>.from(rawFeedback['missed_words'])
-        : [];
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final rawFeedback = res.data['feedback'];
+      final List<String> missed = rawFeedback['missed_words'] != null
+          ? List<String>.from(rawFeedback['missed_words'])
+          : [];
 
-    setState(() {
-      _score = int.tryParse(res.data['score'].toString()) ?? 0;
-      _feedbackText = "You missed ${missed.length} word(s).";
-      _missedWords = missed;
-    });
+      setState(() {
+        _score = int.tryParse(res.data['score'].toString()) ?? 0;
+        _feedbackText = tr('you_missed', args: ['${missed.length}']);
+        _missedWords = missed;
+      });
+    }
   }
-}
 
+  final Map<String, String> _languageLocales = {
+    'Arabic': 'ar-SA',
+    'English': 'en-US',
+    'French': 'fr-FR',
+  };
 
   @override
   void dispose() {
@@ -201,9 +141,9 @@ String _getLocaleForLanguage(String language) {
     final primaryColor = Theme.of(context).primaryColor;
 
     if (!kIsWeb) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: Text("This feature is only available on Web."),
+          child: Text("web_only".tr()),
         ),
       );
     }
@@ -212,7 +152,7 @@ String _getLocaleForLanguage(String language) {
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color(0xFF00111C),
-        title: const Text("Fluency Analysis", style: TextStyle(color: Colors.white)),
+        title: Text("analyze_fluency".tr(), style: const TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: const BottomNavbar(forcedIndex: 1),
       backgroundColor: const Color(0xFF00131F),
@@ -231,7 +171,7 @@ String _getLocaleForLanguage(String language) {
               ),
               child: SingleChildScrollView(
                 child: CustomedText(
-                  text: _paragraph.isEmpty ? 'Loading paragraph...' : _paragraph,
+                  text: _paragraph.isEmpty ? "loading_paragraph".tr() : _paragraph,
                   size: 18,
                   weight: FontWeight.w400,
                 ),
@@ -244,23 +184,22 @@ String _getLocaleForLanguage(String language) {
                 color: primaryColor,
                 size: 50,
               ),
-onPressed: () async {
-  if (_isListening) {
-    await _speech.stop();                
-    if (mounted) setState(() => _isListening = false);
-    await _analyzeFluency();           
-  } else {
-    _startListening();                 
-  }
-},
-
+              onPressed: () async {
+                if (_isListening) {
+                  await _speech.stop();
+                  if (mounted) setState(() => _isListening = false);
+                  await _analyzeFluency();
+                } else {
+                  _startListening();
+                }
+              },
             ),
             const SizedBox(height: 20),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CustomedText(
-                  text: 'Fluency Score:',
+                  text: "fluency_score".tr(),
                   size: 16,
                   weight: FontWeight.w500,
                 ),
@@ -308,7 +247,7 @@ onPressed: () async {
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: CustomedText(
-                      text: "Missed: ${_missedWords.join(', ')}",
+                      text: "${tr('missed')}: ${_missedWords.join(', ')}",
                       size: 14,
                       weight: FontWeight.w300,
                     ),

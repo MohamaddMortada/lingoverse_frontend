@@ -3,6 +3,7 @@ import 'package:lingoverse_frontend/Model/challenge.dart';
 import 'package:lingoverse_frontend/Services/api_client_service.dart';
 import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class LeagueScreen extends StatefulWidget {
   const LeagueScreen({Key? key}) : super(key: key);
@@ -42,10 +43,8 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-
     _trophyScale = Tween<double>(begin: 1.0, end: 1.2).animate(_trophyController);
     _trophyOpacity = Tween<double>(begin: 0.7, end: 1.0).animate(_trophyController);
-
     _init();
   }
 
@@ -72,7 +71,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
 
     final response = await _api.post('/challenges/generate-ai', {
       "language": language,
-      "native" : native,
+      "native": native,
       "level": level,
     });
 
@@ -82,6 +81,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
         _title = response.data['title'];
         _challenges = raw.map((e) => Challenge.fromJson(e)).toList();
         _results = List.generate(raw.length, (_) => {});
+        
       });
     }
   }
@@ -102,7 +102,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: Text("Challenge ${index + 1}"),
+            title: Text('challenge_number'.tr(namedArgs: {'index': '$index'})),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -110,7 +110,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
-                  decoration: const InputDecoration(hintText: 'Your answer'),
+                  decoration: InputDecoration(hintText: 'your_answer'.tr()),
                 ),
                 if (isCorrect != null) ...[
                   const SizedBox(height: 16),
@@ -129,17 +129,12 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isCorrect! ? "Correct Answer" : "Wrong Answer",
+                          isCorrect! ? 'correct_answer'.tr() : 'wrong_answer'.tr(),
                           style: const TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
                   ),
-                  // if (feedback != null) ...[
-                  //   const SizedBox(height: 6),
-                  //   Text("Feedback: $feedback",
-                  //       style: const TextStyle(color: Colors.orange)),
-                  // ]
                 ]
               ],
             ),
@@ -152,7 +147,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
 
                     final body = {
                       "user_id": _userId,
-                      "language":native,
+                      "language": native,
                       "challenge_id": _challenges[index].id,
                       "user_answer": answer,
                     };
@@ -170,12 +165,12 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                       Navigator.pop(context);
                     }
                   },
-                  child: const Text("Submit"),
+                  child: Text('submit'.tr()),
                 )
               else
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Close"),
+                  child: Text('close'.tr()),
                 ),
             ],
           ),
@@ -206,7 +201,6 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
     final prefs = await SharedPreferences.getInstance();
     final currentStageName = prefs.getString('league_level');
     final currentStageIndex = _stageNames.indexOf(currentStageName ?? '');
-
     int unlockedStage = prefs.getInt('unlocked_stage') ?? 1;
 
     if (_allCompleted() && currentStageIndex + 1 == unlockedStage) {
@@ -216,6 +210,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
 
   bool _isActive(int index) {
     if (index == 0) return true;
+    print('challenge_number'.tr(args: ['$index']));
     return _results[index - 1]['is_correct'] == true;
   }
 
@@ -240,7 +235,7 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                 children: [
                   const SizedBox(height: 20),
                   Text(
-                    _title ?? 'League',
+                    _title ?? 'league'.tr(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -316,8 +311,10 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                                   size: 32,
                                 ),
                                 const SizedBox(width: 12),
+                                
                                 Text(
-                                  'Challenge ${index + 1}',
+                                 'challenge_number'.tr(namedArgs: {'index': '$index'}),
+
                                   style: const TextStyle(
                                     fontSize: 18,
                                     color: Colors.white,
@@ -348,15 +345,11 @@ class TrophyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(
-          Icons.emoji_events,
-          size: 64,
-          color: Theme.of(context).primaryColor,
-        ),
+        Icon(Icons.emoji_events, size: 64, color: Theme.of(context).primaryColor),
         const SizedBox(height: 8),
         Text(
-          'Trophy Earned!',
-          style: TextStyle(
+          'trophy_earned'.tr(),
+          style: const TextStyle(
             color: Colors.amberAccent,
             fontWeight: FontWeight.bold,
             fontSize: 16,

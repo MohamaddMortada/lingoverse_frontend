@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:lingoverse_frontend/View/Pages/challenges_screen.dart';
 import 'package:lingoverse_frontend/View/Pages/fluency_screen.dart';
 import 'package:lingoverse_frontend/View/Pages/listen_screen.dart';
@@ -15,10 +16,23 @@ class ActivitiesScreen extends StatefulWidget {
 }
 
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
+  Locale? _currentLocale;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = context.locale;
+    if (_currentLocale != locale) {
+      setState(() {
+        _currentLocale = locale;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  bottomNavigationBar: const BottomNavbar(forcedIndex: 1),
+      bottomNavigationBar: const BottomNavbar(forcedIndex: 1),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
@@ -28,27 +42,27 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               Align(
                 alignment: Alignment.center,
                 child: CustomedText(
-                  text: 'Activities and Games',
+                  text: 'activities_and_games'.tr(),
                   size: 24,
                   weight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 30),
-              CustomedText(text: 'Games', size: 16, weight: FontWeight.bold),
+              CustomedText(text: 'games'.tr(), size: 16, weight: FontWeight.bold),
               const SizedBox(height: 20),
-              _navigateCard('Daily Challenges', Icons.calendar_month, const ChallengesPage()),
+              _navigateCard('daily_challenges', Icons.calendar_month, const ChallengesPage()),
 
               const SizedBox(height: 30),
-              CustomedText(text: 'Conversation', size: 16, weight: FontWeight.bold),
+              CustomedText(text: 'conversation'.tr(), size: 16, weight: FontWeight.bold),
               const SizedBox(height: 20),
-              _navigateCard('Voice Chatbot', Icons.voice_chat, const SpeakScreen()),
+              _navigateCard('voice_chatbot', Icons.voice_chat, const SpeakScreen()),
               const SizedBox(height: 10),
-              _navigateCard('Listen', Icons.headphones, const ListenScreen()),
+              _navigateCard('listen', Icons.headphones, const ListenScreen()),
 
               const SizedBox(height: 30),
-              CustomedText(text: 'Speech Recognition', size: 16, weight: FontWeight.bold),
+              CustomedText(text: 'speech_recognition'.tr(), size: 16, weight: FontWeight.bold),
               const SizedBox(height: 20),
-              _navigateCard('Analyze your fluency', Icons.search_rounded, const FluencyScreen()),
+              _navigateCard('analyze_fluency', Icons.search_rounded, const FluencyScreen()),
 
               const SizedBox(height: 30),
             ],
@@ -58,18 +72,18 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     );
   }
 
-  Widget _navigateCard(String text, IconData icon, Widget screen) {
+  Widget _navigateCard(String key, IconData icon, Widget screen) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => screen,
-            settings: const RouteSettings(name: '/activities'), 
+            settings: const RouteSettings(name: '/activities'),
           ),
         );
       },
-      child: ActivityCard(text: text, icon: icon, screen: screen),
+      child: ActivityCard(text: key.tr(), icon: icon, screen: screen),
     );
   }
 }
