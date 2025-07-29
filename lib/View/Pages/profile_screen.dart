@@ -9,6 +9,7 @@ import 'package:lingoverse_frontend/Services/api_client_service.dart';
 import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
 import 'package:lingoverse_frontend/View/Widgets/customed_text.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,7 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final ageController = TextEditingController();
+  final ageController = TextEditingController(); // Used for date of birth
 
   final AuthService _authService = AuthService();
 
@@ -123,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'name': nameController.text,
       'email': emailController.text,
       'password': passwordController.text.isNotEmpty ? passwordController.text : null,
-      'age': int.tryParse(ageController.text),
+      'age': ageController.text.isNotEmpty ? _calculateAge(DateTime.parse(ageController.text)) : null,
       'image': imageBase64,
     }..removeWhere((key, value) => value == null);
 
@@ -138,6 +139,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       await _loadUser();
     }
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final today = DateTime.now();
+    int age = today.year - birthDate.year;
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
   }
 
   void _showChangePasswordDialog() {
@@ -257,16 +268,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildField(String label, TextEditingController controller,
-      {TextInputType? keyboardType, bool obscureText = false}) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.grey[100],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      {TextInputType? keyboardType, bool obscureText = false, bool isDate = false}) {
+    return GestureDetector(
+      onTap: isDate
+          ? () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime(2000),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                controller.text = DateFormat('yyyy-MM-dd').format(picked);
+              }
+            }
+          : null,
+      child: AbsorbPointer(
+        absorbing: isDate,
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          decoration: InputDecoration(
+            labelText: label,
+            floatingLabelBehavior: FloatingLabelBehavior.never,
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
       ),
     );
   }
@@ -386,12 +416,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : _buildDisplayRow("email", emailController.text),
                   const SizedBox(height: 10),
                   _isEditing
-                      ? _buildField("date_of_birth".tr(), ageController)
+                      ? _buildField("date_of_birth".tr(), ageController, isDate: true)
                       : _buildDisplayRow("age", ageController.text),
                   const SizedBox(height: 10),
                   if (_isEditing)
-                  CustomedButton(text: "change_password".tr(), ontap: _showChangePasswordDialog),
-                   
+                    CustomedButton(text: "change_password".tr(), ontap: _showChangePasswordDialog),
+                   const SizedBox(height: 10),
+                    if (_isEditing)
+                    ElevatedButton(
+                      onPressed: _updateUser,
+                      child: Text("save".tr()),
+                    ),
                   const SizedBox(height: 30),
                   _dropdownRow("learning_language", _languages, _selectedLanguage, (val) {
                     setState(() => _selectedLanguage = val);
@@ -416,11 +451,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 10),
                   _infoRow('learning_ratio', learningRatio),
                   const SizedBox(height: 30),
-                  if (_isEditing)
-                    ElevatedButton(
-                      onPressed: _updateUser,
-                      child: Text("save".tr()),
-                    ),
+                  
                 ],
               ),
             ),

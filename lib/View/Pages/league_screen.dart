@@ -12,8 +12,11 @@ class LeagueScreen extends StatefulWidget {
   State<LeagueScreen> createState() => _LeagueScreenState();
 }
 
-class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderStateMixin {
-  final ApiClientService _api = ApiClientService(baseUrl: 'http://127.0.0.1:8000/api');
+class _LeagueScreenState extends State<LeagueScreen>
+    with SingleTickerProviderStateMixin {
+  final ApiClientService _api = ApiClientService(
+    baseUrl: 'http://127.0.0.1:8000/api',
+  );
   List<Challenge> _challenges = [];
   List<Map<String, dynamic>> _results = [];
   String? _title;
@@ -43,8 +46,14 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _trophyScale = Tween<double>(begin: 1.0, end: 1.2).animate(_trophyController);
-    _trophyOpacity = Tween<double>(begin: 0.7, end: 1.0).animate(_trophyController);
+    _trophyScale = Tween<double>(
+      begin: 1.0,
+      end: 1.2,
+    ).animate(_trophyController);
+    _trophyOpacity = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(_trophyController);
     _init();
   }
 
@@ -81,28 +90,57 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
         _title = response.data['title'];
         _challenges = raw.map((e) => Challenge.fromJson(e)).toList();
         _results = List.generate(raw.length, (_) => {});
-        
       });
     }
   }
+Future<void> _submitAnswer(int index) async {
+  final controller = TextEditingController();
+  Color? resultColor;
+  bool? isCorrect;
+  String? feedback;
+  Map<String, dynamic>? finalResult;
 
-  Future<void> _submitAnswer(int index) async {
-    final controller = TextEditingController();
-    Color? resultColor;
-    bool? isCorrect;
-    String? feedback;
-    Map<String, dynamic>? finalResult;
+  final prefs = await SharedPreferences.getInstance();
+  final native = prefs.getString('native') ?? 'english';
 
-    final prefs = await SharedPreferences.getInstance();
-    final native = prefs.getString('native') ?? 'english';
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          Future<void> handleSubmit() async {
+            final answer = controller.text.trim();
+            if (answer.isEmpty || _userId == null) return;
 
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: Text('challenge_number'.tr(namedArgs: {'index': '$index'})),
+            final body = {
+              "user_id": _userId,
+              "language": native,
+              "challenge_id": _challenges[index].id,
+              "user_answer": answer,
+            };
+
+            final res = await _api.post('/challenges/answer', body);
+            if (res.success) {
+              final result = res.data['result'];
+              isCorrect = result['is_correct'];
+              resultColor = isCorrect! ? Colors.green : Colors.red;
+              feedback = isCorrect! ? 'Correct!' : 'Wrong. Try again.';
+              finalResult = result;
+
+              setState(() {});
+
+              if (isCorrect!) {
+                await Future.delayed(const Duration(seconds: 1));
+                Navigator.pop(context);
+              }
+            }
+          }
+
+          return AlertDialog(
+            title: Text(
+              'challenge_number'.tr(namedArgs: {'index': '$index'}),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -110,9 +148,14 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
-                  decoration: InputDecoration(hintText: 'your_answer'.tr()),
+                  decoration: InputDecoration(
+                    hintText: 'your_answer'.tr(),
+                    border: const OutlineInputBorder(),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => handleSubmit(),
                 ),
-                if (isCorrect != null) ...[
+                if (feedback != null) ...[
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -129,67 +172,44 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isCorrect! ? 'correct_answer'.tr() : 'wrong_answer'.tr(),
+                          feedback ?? '',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
                   ),
-                ]
+                ],
               ],
             ),
             actions: [
-              if (isCorrect == null)
-                ElevatedButton(
-                  onPressed: () async {
-                    final answer = controller.text.trim();
-                    if (answer.isEmpty || _userId == null) return;
-
-                    final body = {
-                      "user_id": _userId,
-                      "language": native,
-                      "challenge_id": _challenges[index].id,
-                      "user_answer": answer,
-                    };
-
-                    final res = await _api.post('/challenges/answer', body);
-                    if (res.success) {
-                      final result = res.data['result'];
-                      isCorrect = result['is_correct'];
-                      resultColor = isCorrect! ? Colors.green : Colors.red;
-                      feedback = result['feedback'];
-                      finalResult = result;
-
-                      setState(() {});
-                      await Future.delayed(const Duration(seconds: 1));
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Text('submit'.tr()),
-                )
-              else
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('close'.tr()),
-                ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('cancel'.tr()),
+              ),
+              ElevatedButton(
+                onPressed: handleSubmit,
+                child: Text(isCorrect == null ? 'submit'.tr() : 'submit_again'.tr()),
+              ),
             ],
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    },
+  );
 
-    if (finalResult != null && finalResult!['is_correct'] == true) {
-      setState(() {
-        _results[index] = finalResult!;
-      });
+  if (finalResult != null && finalResult!['is_correct'] == true) {
+    setState(() {
+      _results[index] = finalResult!;
+    });
 
-      if (_allCompleted()) {
-        _trophyController.repeat(reverse: true);
-        await _addTrophy();
-        await _unlockNextStage();
-      }
+    if (_allCompleted()) {
+      _trophyController.repeat(reverse: true);
+      await _addTrophy();
+      await _unlockNextStage();
     }
   }
+}
+
 
   Future<void> _addTrophy() async {
     final prefs = await SharedPreferences.getInstance();
@@ -228,112 +248,140 @@ class _LeagueScreenState extends State<LeagueScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: const Color(0xFF00111C),
       bottomNavigationBar: const BottomNavbar(forcedIndex: 0),
-      body: _challenges.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Text(
-                    _title ?? 'league'.tr(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+      body:
+          _challenges.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : SafeArea(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                      IconButton(onPressed: (){
+                        Navigator.pop(context);
+                      }, icon: Icon(Icons.arrow_back, color: Colors.white,)),
+                      Text(
+                      _title ?? 'league'.tr(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      itemCount: _challenges.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == _challenges.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 40),
-                            child: Center(
-                              child: _allCompleted()
-                                  ? AnimatedBuilder(
-                                      animation: _trophyController,
-                                      builder: (context, child) {
-                                        return Transform.scale(
-                                          scale: _trophyScale.value,
-                                          child: Opacity(
-                                            opacity: _trophyOpacity.value,
-                                            child: const TrophyWidget(),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                          );
-                        }
-
-                        final isActive = _isActive(index);
-                        final isCompleted = _isCompleted(index);
-
-                        return GestureDetector(
-                          onTap: isActive ? () => _submitAnswer(index) : null,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                            decoration: BoxDecoration(
-                              color: isCompleted
-                                  ? Colors.green.withOpacity(0.2)
-                                  : isActive
-                                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                                      : Colors.grey.withOpacity(0.1),
-                              border: Border.all(
-                                color: isCompleted
-                                    ? Colors.green
-                                    : isActive
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.grey,
-                                width: 1.2,
+                    SizedBox(width: 10,),
+                    ],),
+                    
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        itemCount: _challenges.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == _challenges.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 40),
+                              child: Center(
+                                child:
+                                    _allCompleted()
+                                        ? AnimatedBuilder(
+                                          animation: _trophyController,
+                                          builder: (context, child) {
+                                            return Transform.scale(
+                                              scale: _trophyScale.value,
+                                              child: Opacity(
+                                                opacity: _trophyOpacity.value,
+                                                child: const TrophyWidget(),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                        : const SizedBox.shrink(),
                               ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isCompleted
-                                      ? Icons.check_circle
-                                      : isActive
-                                          ? Icons.play_circle_fill
-                                          : Icons.lock,
-                                  color: isCompleted
-                                      ? Colors.green
-                                      : isActive
+                            );
+                          }
+
+                          final isActive = _isActive(index);
+                          final isCompleted = _isCompleted(index);
+
+                          return GestureDetector(
+                            onTap: isActive ? () => _submitAnswer(index) : null,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 20,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isCompleted
+                                        ? Colors.green.withOpacity(0.2)
+                                        : isActive
+                                        ? Theme.of(
+                                          context,
+                                        ).primaryColor.withOpacity(0.1)
+                                        : Colors.grey.withOpacity(0.1),
+                                border: Border.all(
+                                  color:
+                                      isCompleted
+                                          ? Colors.green
+                                          : isActive
                                           ? Theme.of(context).primaryColor
                                           : Colors.grey,
-                                  size: 32,
+                                  width: 1.2,
                                 ),
-                                const SizedBox(width: 12),
-                                
-                                Text(
-                                 'challenge_number'.tr(namedArgs: {'index': '$index'}),
-
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isCompleted
+                                        ? Icons.check_circle
+                                        : isActive
+                                        ? Icons.play_circle_fill
+                                        : Icons.lock,
+                                    color:
+                                        isCompleted
+                                            ? Colors.green
+                                            : isActive
+                                            ? Theme.of(context).primaryColor
+                                            : Colors.grey,
+                                    size: 32,
                                   ),
-                                ),
-                                const Spacer(),
-                                if (isCompleted)
-                                  const Icon(Icons.verified, color: Colors.green, size: 20),
-                              ],
+                                  const SizedBox(width: 12),
+
+                                  Text(
+                                    'challenge_number'.tr(
+                                      namedArgs: {'index': '$index'},
+                                    ),
+
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  if (isCompleted)
+                                    const Icon(
+                                      Icons.verified,
+                                      color: Colors.green,
+                                      size: 20,
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
     );
   }
 }
@@ -345,7 +393,11 @@ class TrophyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(Icons.emoji_events, size: 64, color: Theme.of(context).primaryColor),
+        Icon(
+          Icons.emoji_events,
+          size: 64,
+          color: Theme.of(context).primaryColor,
+        ),
         const SizedBox(height: 8),
         Text(
           'trophy_earned'.tr(),

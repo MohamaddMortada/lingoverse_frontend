@@ -26,7 +26,7 @@ class _StageSelectionScreenState extends State<StageSelectionScreen> {
     'advanced',
     'proficient',
     'expert',
-    'master'
+    'master',
   ];
 
   @override
@@ -61,7 +61,10 @@ class _StageSelectionScreenState extends State<StageSelectionScreen> {
       bottomNavigationBar: const BottomNavbar(forcedIndex: 0),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text("select_stage".tr(), style: const TextStyle(color: Colors.white)),
+        title: Text(
+          "select_stage".tr(),
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF00111C),
       ),
       body: Padding(
@@ -76,22 +79,23 @@ class _StageSelectionScreenState extends State<StageSelectionScreen> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: ElevatedButton(
-                onPressed: isUnlocked ? () => _selectStage(context, stageKey) : null,
+                onPressed:
+                    isUnlocked ? () => _selectStage(context, stageKey) : null,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(60),
-                  backgroundColor: isUnlocked
-                      ? Theme.of(context).primaryColor
-                      : Theme.of(context).primaryColor.withOpacity(0.3),
+                  backgroundColor:
+                      isUnlocked
+                          ? Theme.of(context).primaryColor
+                          : Theme.of(context).primaryColor.withOpacity(0.3),
                 ),
                 child: Text(
-  stageKey.tr(),
-  style: TextStyle(
-    fontSize: 18,
-    color: isUnlocked ? Colors.white : Colors.white54,
-    fontWeight: FontWeight.w500,
-  ),
-),
-
+                  stageKey.tr(),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isUnlocked ? Colors.white : Colors.white54,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             );
           },
