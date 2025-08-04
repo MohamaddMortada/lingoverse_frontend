@@ -23,17 +23,10 @@ class _ListenScreenState extends State<ListenScreen> {
   String _paragraph = '';
   String _feedback = '';
   int _score = 0;
-  String _language = 'English';
   List<String> _missedWords = [];
 
   bool _isLoading = false;
   bool _isPlaying = false;
-
-  final Map<String, String> _languageLocales = {
-    'English': 'en-US',
-    'Arabic': 'ar-SA',
-    'French': 'fr-FR',
-  };
 
   @override
   void initState() {
@@ -42,20 +35,20 @@ class _ListenScreenState extends State<ListenScreen> {
   }
 
   Future<void> _initialize() async {
-    await _loadLanguage();
     await _setupTts();
     await _fetchParagraph();
   }
 
-  Future<void> _loadLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _language = prefs.getString('language') ?? 'English';
-    });
-  }
-
   Future<void> _setupTts() async {
-    final locale = _languageLocales[_language] ?? 'en-US';
+    final currentLangCode = context.locale.languageCode;
+
+    final locale = switch (currentLangCode) {
+      'en' => 'en-US',
+      'ar' => 'ar-SA',
+      'fr' => 'fr-FR',
+      _ => 'en-US',
+    };
+
     await _tts.setLanguage(locale);
     await _tts.setSpeechRate(0.5);
 
@@ -66,7 +59,7 @@ class _ListenScreenState extends State<ListenScreen> {
 
   Future<void> _fetchParagraph() async {
     final res = await _api.post('/speech/paragraph', {
-      'language': _language,
+      'language': context.locale.languageCode,
     });
 
     if (res.success && res.data['paragraph'] != null) {
@@ -104,6 +97,7 @@ class _ListenScreenState extends State<ListenScreen> {
         _missedWords = List<String>.from(rawFeedback['missed_words']);
       });
     }
+
     setState(() => _isLoading = false);
   }
 
