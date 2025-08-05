@@ -23,10 +23,17 @@ class _ListenScreenState extends State<ListenScreen> {
   String _paragraph = '';
   String _feedback = '';
   int _score = 0;
+  String _language = 'English';
   List<String> _missedWords = [];
 
   bool _isLoading = false;
   bool _isPlaying = false;
+
+  final Map<String, String> _languageLocales = {
+    'English': 'en-US',
+    'Arabic': 'ar-SA',
+    'French': 'fr-FR',
+  };
 
   @override
   void initState() {
@@ -35,31 +42,59 @@ class _ListenScreenState extends State<ListenScreen> {
   }
 
   Future<void> _initialize() async {
+    await _loadLanguage();
     await _setupTts();
     await _fetchParagraph();
   }
 
-  Future<void> _setupTts() async {
-    final currentLangCode = context.locale.languageCode;
-
-    final locale = switch (currentLangCode) {
-      'en' => 'en-US',
-      'ar' => 'ar-SA',
-      'fr' => 'fr-FR',
-      _ => 'en-US',
-    };
-
-    await _tts.setLanguage(locale);
-    await _tts.setSpeechRate(0.5);
-
-    _tts.setStartHandler(() => setState(() => _isPlaying = true));
-    _tts.setCompletionHandler(() => setState(() => _isPlaying = false));
-    _tts.setPauseHandler(() => setState(() => _isPlaying = false));
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _language = prefs.getString('language') ?? 'English';
+    });
   }
+
+  Future<void> _setupTts() async {
+  final langCode = switch (_language) {
+    'Arabic' => 'ar',
+    'French' => 'fr',
+    'English' => 'en',
+    _ => 'en',
+  };
+
+  final voices = await _tts.getVoices;
+
+  final selectedVoice = voices.firstWhere(
+    (voice) => voice['locale'].toString().startsWith(langCode),
+    orElse: () => null,
+  );
+
+  if (selectedVoice != null) {
+    await _tts.setVoice({
+      'name': selectedVoice['name'],
+      'locale': selectedVoice['locale'],
+    });
+    debugPrint('Voice set: ${selectedVoice['name']} - ${selectedVoice['locale']}');
+  } else {
+    final fallbackLocale = {'en': 'en-US', 'fr': 'fr-FR', 'ar': 'ar-SA'}[langCode]!;
+    final success = await _tts.setLanguage(fallbackLocale);
+    debugPrint('Voice not found, using fallback language: $fallbackLocale');
+    if (!success) {
+      debugPrint('TTS does not support $fallbackLocale on this device.');
+    }
+  }
+
+  await _tts.setSpeechRate(0.5);
+
+  _tts.setStartHandler(() => setState(() => _isPlaying = true));
+  _tts.setCompletionHandler(() => setState(() => _isPlaying = false));
+  _tts.setPauseHandler(() => setState(() => _isPlaying = false));
+}
+
 
   Future<void> _fetchParagraph() async {
     final res = await _api.post('/speech/paragraph', {
-      'language': context.locale.languageCode,
+      'language': _language,
     });
 
     if (res.success && res.data['paragraph'] != null) {
@@ -97,7 +132,6 @@ class _ListenScreenState extends State<ListenScreen> {
         _missedWords = List<String>.from(rawFeedback['missed_words']);
       });
     }
-
     setState(() => _isLoading = false);
   }
 
