@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:lingoverse_frontend/View/Widgets/buttom_navbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'league_screen.dart';
+import 'package:http/http.dart' as http;
+
 
 class StageSelectionScreen extends StatefulWidget {
   const StageSelectionScreen({super.key});
@@ -36,13 +40,57 @@ class _StageSelectionScreenState extends State<StageSelectionScreen> {
   }
 
   Future<void> _loadUnlockedStage() async {
-    final prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
+
+  final userId = prefs.getInt('user_id');
+  _language = prefs.getString('language')?.toLowerCase() ?? 'english';
+  native = prefs.getString('native')?.toLowerCase() ?? 'english';
+
+  if (userId != null) {
+    try {
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/api/users/$userId'),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        String levelKey = '${_language}_level'; 
+
+        int level = 1;
+        if (data[levelKey] != null && data[levelKey] is int) {
+          level = data[levelKey];
+        }
+
+        setState(() {
+          _unlockedStage = level;
+          _language = _language;
+          native = native;
+        });
+        final currentStageName = _stages[level - 1]; 
+        print('Current learning language stage ($_language): $currentStageName .... $_unlockedStage');
+      } else {
+        setState(() {
+          _unlockedStage = prefs.getInt('unlocked_stage') ?? 1;
+        });
+      }
+    } catch (e) {
+      print('Failed to fetch user data: $e');
+      setState(() {
+        _unlockedStage = prefs.getInt('unlocked_stage') ?? 1;
+      });
+    }
+  } else {
     setState(() {
       _unlockedStage = prefs.getInt('unlocked_stage') ?? 1;
-      _language = prefs.getString('language') ?? 'English';
-      native = prefs.getString('native') ?? 'English';
     });
   }
+}
+
+
 
   Future<void> _selectStage(BuildContext context, String level) async {
     final prefs = await SharedPreferences.getInstance();
